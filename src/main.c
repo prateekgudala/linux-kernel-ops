@@ -8,6 +8,7 @@
 #include "parser.h"
 #include "expand.h"
 #include "builtin.h"
+#include "executor.h"
 
 int main(void) {
     printf("=====================================\n");
@@ -21,9 +22,8 @@ int main(void) {
 
     while (1) {
         line = readline("shellforge$ ");
-        if (line == NULL) {
-            break;
-        }
+        if (line == NULL) break;
+        
         if (strlen(line) == 0) {
             free(line);
             continue;
@@ -32,17 +32,15 @@ int main(void) {
         add_history(line);
 
         if (lexer(line, &tokens) == 0) {
-            token_print(&tokens);
+            // Optional: comment out token_print(&tokens) here if you want a cleaner terminal
+            token_print(&tokens); 
             
             if (parse(&tokens, &pipeline)) {
                 expand_variables(&pipeline);
+                // Optional: comment out pipeline_print(&pipeline) here if you want a cleaner terminal
                 pipeline_print(&pipeline);
 
-                if (pipeline.command_count > 0 && pipeline.commands[0].argc > 0) {
-                    if (is_builtin(pipeline.commands[0].argv[0])) {
-                        execute_builtin(&pipeline.commands[0]);
-                    }
-                }
+                execute_pipeline(&pipeline);
             }
         }
         free(line);
