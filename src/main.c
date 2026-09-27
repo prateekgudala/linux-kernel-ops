@@ -5,6 +5,8 @@
 #include <readline/readline.h>
 #include "token.h"
 #include "lexer.h"
+#include "parser.h"
+#include "expand.h"
 
 int main(void) {
     printf("=====================================\n");
@@ -13,12 +15,13 @@ int main(void) {
     printf("=====================================\n");
 
     char *line;
-    token_list_t list;
+    token_list_t tokens;
+    pipeline_t pipeline;
 
     while (1) {
         line = readline("shellforge$ ");
         if (line == NULL) {
-            printf("\nExiting...\n");
+            printf("\nGoodbye!\n");
             break;
         }
         if (strlen(line) == 0) {
@@ -32,23 +35,16 @@ int main(void) {
             free(line);
             printf("Exiting...\n");
             break;
-        } else if (strcmp(line, "history") == 0) {
-            printf("------ Command History ------\n");
-            HIST_ENTRY **the_list = history_list();
-            if (the_list) {
-                for (int i = 0; the_list[i]; i++) {
-                    printf(" %2d  %s\n", i + 1, the_list[i]->line);
-                }
+        }
+
+        if (lexer(line, &tokens) == 0) {
+            token_print(&tokens);
+            
+            if (parse(&tokens, &pipeline)) {
+                expand_variables(&pipeline);
+                pipeline_print(&pipeline);
             }
-            printf("-----------------------------\n");
-            free(line);
-            continue;
         }
-
-        if (lexer(line, &list) == 0) {
-            token_print(&list);
-        }
-
         free(line);
     }
     return 0;
