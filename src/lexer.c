@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include "lexer.h"
+
+int lexer(const char *input, token_list_t *list) {
+    token_list_init(list);
+    int i = 0;
+
+    while (1) {
+        if (input[i] == '\0') {
+            token_add(list, TOKEN_END, "END");
+            return 0; 
+        }
+
+        if (isspace(input[i])) {
+            i++;
+            continue;
+        }
+
+        if (input[i] == '|') {
+            token_add(list, TOKEN_PIPE, "|");
+            i++;
+            continue;
+        }
+        if (input[i] == '<') {
+            token_add(list, TOKEN_INPUT, "<");
+            i++;
+            continue;
+        }
+        if (input[i] == '>') {
+            if (input[i+1] == '>') {
+                token_add(list, TOKEN_APPEND, ">>");
+                i += 2;
+            } else {
+                token_add(list, TOKEN_OUTPUT, ">");
+                i++;
+            }
+            continue;
+        }
+        if (input[i] == '&') {
+            token_add(list, TOKEN_BACKGROUND, "&");
+            i++;
+            continue;
+        }
+
+        char word[MAX_TOKEN_LEN];
+        int j = 0;
+
+        while (input[i] != '\0' && !isspace(input[i]) && 
+               input[i] != '|' && input[i] != '<' && 
+               input[i] != '>' && input[i] != '&') {
+            
+            char c = input[i];
+
+            if (c == '\'') {
+                i++; 
+                while (input[i] != '\0' && input[i] != '\'') {
+                    if (j < MAX_TOKEN_LEN - 1) word[j++] = input[i];
+                    i++;
+                }
+                if (input[i] == '\'') {
+                    i++; 
+                    continue;
+                } else {
+                    printf("Lexer Error : Unterminated single quote\n");
+                    return -1;
+                }
+            } else if (c == '\"') {
+                i++; 
+                while (input[i] != '\0' && input[i] != '\"') {
+                    if (input[i] == '\\' && input[i+1] == '\"') {
+                        i++; 
+                        if (j < MAX_TOKEN_LEN - 1) word[j++] = input[i];
+                        i++;
+                    } else {
+                        if (j < MAX_TOKEN_LEN - 1) word[j++] = input[i];
+                        i++;
+                    }
+                }
+                if (input[i] == '\"') {
+                    i++; 
+                    continue;
+                } else {
+                    printf("Lexer Error : Unterminated double quote\n");
+                    return -1;
+                }
+            } else if (c == '\\') {
+                i++; 
+                if (input[i] != '\0') {
+                    if (j < MAX_TOKEN_LEN - 1) word[j++] = input[i];
+                    i++;
+                }
+                continue;
+            } else {
+                if (j < MAX_TOKEN_LEN - 1) word[j++] = input[i];
+                i++;
+                continue;
+            }
+        }
+        word[j] = '\0';
+        token_add(list, TOKEN_WORD, word);
+    }
+    return 0;
+}
