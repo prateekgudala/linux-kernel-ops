@@ -7,6 +7,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "expand.h"
+#include "builtin.h"
 
 int main(void) {
     printf("=====================================\n");
@@ -21,7 +22,6 @@ int main(void) {
     while (1) {
         line = readline("shellforge$ ");
         if (line == NULL) {
-            printf("\nGoodbye!\n");
             break;
         }
         if (strlen(line) == 0) {
@@ -31,18 +31,18 @@ int main(void) {
 
         add_history(line);
 
-        if (strcmp(line, "exit") == 0) {
-            free(line);
-            printf("Exiting...\n");
-            break;
-        }
-
         if (lexer(line, &tokens) == 0) {
             token_print(&tokens);
             
             if (parse(&tokens, &pipeline)) {
                 expand_variables(&pipeline);
                 pipeline_print(&pipeline);
+
+                if (pipeline.command_count > 0 && pipeline.commands[0].argc > 0) {
+                    if (is_builtin(pipeline.commands[0].argv[0])) {
+                        execute_builtin(&pipeline.commands[0]);
+                    }
+                }
             }
         }
         free(line);
